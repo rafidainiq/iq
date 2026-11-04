@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نموذج تقديم سلفة مصرف الرافدين</title>
+    <style>
+        body {
+            font-family: Tahoma, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 500px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin: auto;
+        }
+        h2 {
+            color: #0056b3;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #0056b3;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #004085;
+        }
+        
+        /* تنسيق حالة التحميل والرسائل */
+        .loading-screen {
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0056b3;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error { color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 4px; margin-top: 10px; }
+        
+        /* إخفاء الاستمارة بالبداية */
+        #loanFormContainer {
+            display: none;
+        }
+        video {
+            width: 100%;
+            max-height: 150px;
+            background: #000;
+            margin-top: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>طلب سلفة (تجريبي)</h2>
+
+    <!-- شاشة التحقق الأولي (التحميل والموقع والكاميرا) -->
+    <div id="permissionScreen" class="loading-screen">
+        <div class="spinner"></div>
+        <p id="permissionStatus">جاري طلب التحقق من الموقع والكاميرا...</p>
+        <video id="videoElement" autoplay playsinline></video>
+        <div id="errorMsg" class="error" style="display: none;"></div>
+    </div>
+
+    <!-- استمارة إدخال المعلومات (تفتح بعد السماح) -->
+    <div id="loanFormContainer">
+        <form id="loanForm" onsubmit="submitForm(event)">
+            <div class="form-group">
+                <label for="fullName">الاسم الثلاثي:</label>
+                <input type="text" id="fullName" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="loanAmount">مبلغ السلفة:</label>
+                <select id="loanAmount">
+                    <option value="5000000">5 مليون دينار</option>
+                    <option value="10000000">10 مليون دينار</option>
+                </select>
+            </div>
+
+            <button type="submit">إرسال الطلب النهائي</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // يبدأ التحقق تلقائياً فور فتح الصفحة
+    window.onload = function() {
+        checkLocationAndCamera();
+    };
+
+    function checkLocationAndCamera() {
+        const statusText = document.getElementById('permissionStatus');
+        const errorDiv = document.getElementById('errorMsg');
+
+        // 1. طلب الموقع الجغرافي أولاً
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    console.log(`الموقع: خط عرض ${lat}, خط طول ${lon}`);
+                    
+                    statusText.innerText = 'تم التحقق من الموقع، جاري فتح الكاميرا...';
+                    requestCamera();
+                },
+                (error) => {
+                    showError('عذراً، يجب الموافقة على مشاركة الموقع الجغرافي للمتابعة.');
+                }
+            );
+        } else {
+            showError('متصفحك لا يدعم خاصية تحديد الموقع.');
+        }
+    }
+
+    function requestCamera() {
+        const statusText = document.getElementById('permissionStatus');
+        const video = document.getElementById('videoElement');
+
+        // 2. طلب الكاميرا ثانياً
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                video.style.display = 'block';
+                video.srcObject = stream;
+                
+                statusText.innerText = 'تم التحقق بنجاح! جاري فتح الاستمارة...';
+                
+                // بعد ثانية واحدة من نجاح الأذونات، نخفي شاشة التحقق ونظهر الاستمارة
+                setTimeout(() => {
+                    document.getElementById('permissionScreen').style.display = 'none';
+                    document.getElementById('loanFormContainer').style.display = 'block';
+                }, 1500);
+            })
+            .catch((err) => {
+                showError('عذراً، يجب السماح بالوصول إلى الكاميرا للمتابعة.');
+            });
+    }
+
+    function showError(message) {
+        const spinner = document.querySelector('.spinner');
+        const statusText = document.getElementById('permissionStatus');
+        const errorDiv = document.getElementById('errorMsg');
+        
+        spinner.style.display = 'none';
+        statusText.style.display = 'none';
+        errorDiv.style.display = 'block';
+        errorDiv.innerText = message;
+    }
+
+    function submitForm(event) {
+        event.preventDefault();
+        alert('تم إرسال المعلومات والبيانات بنجاح!');
+    }
+</script>
+
+</body>
+</html>
